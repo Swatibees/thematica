@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thematica — Reflexive Thematic Analysis Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a; --surface: #111; --surface2: #161616; --surface3: #1a1a1a;
+  --border: #1e1e1e; --border2: #2a2a2a; --text: #e2ddd6; --muted: #6a6560;
+  --faint: #2a2a2a; --gold: #c9a96e; --gold2: #c9a96e44; --gold3: #c9a96e22;
+  --blue: #6eb5c9; --purple: #a87ec9; --green: #6ec990; --red: #c96e7a; --yellow: #c9be6e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--text); font-family: 'Crimson Pro', Georgia, serif; overflow: hidden; }
+input, textarea, button, select { font-family: inherit; }
+
+/* ========== GRAIN ========== */
+body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:1000; opacity:0.35; }
+
+/* ========== SCREENS ========== */
+.screen { display:none; position:fixed; inset:0; z-index:10; overflow-y:auto; }
+.screen.active { display:flex; flex-direction:column; }
+
+/* ========== LOGIN ========== */
+#login-screen {
+  align-items:center; justify-content:center;
+  background: radial-gradient(ellipse at 30% 40%, #1a1408 0%, var(--bg) 60%);
+}
+.login-box { width:100%; max-width:420px; padding:48px; }
+.login-logo { font-family:'Playfair Display',serif; font-size:32px; font-weight:400; color:var(--gold); margin-bottom:6px; }
+.login-tagline { font-size:13px; color:var(--muted); margin-bottom:40px; letter-spacing:1px; }
+.login-label { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; display:block; }
+.login-input { width:100%; background:var(--surface); border:1px solid var(--border2); border-radius:3px; padding:12px 14px; color:var(--text); font-size:14px; outline:none; margin-bottom:16px; transition:border-color 0.2s; }
+.login-input:focus { border-color:var(--gold); }
+.login-btn { width:100%; background:var(--gold); border:none; color:#0a0a0a; padding:14px; font-size:13px; letter-spacing:2px; text-transform:uppercase; cursor:pointer; border-radius:3px; margin-top:8px; transition:opacity 0.2s; }
+.login-btn:hover { opacity:0.9; }
+.login-note { font-size:12px; color:var(--muted); margin-top:20px; line-height:1.6; text-align:center; }
+.login-note a { color:var(--gold); cursor:pointer; text-decoration:underline; }
+
+/* ========== MAIN APP ========== */
+#app-screen { flex-direction:row; }
+
+/* Sidebar */
+.sidebar { width:220px; min-width:220px; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; height:100vh; position:sticky; top:0; }
+.sidebar-logo { padding:24px 20px 20px; border-bottom:1px solid var(--border); }
+.sidebar-logo .name { font-family:'Playfair Display',serif; font-size:20px; color:var(--gold); }
+.sidebar-logo .sub { font-size:10px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+.sidebar-user { padding:12px 20px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); display:flex; justify-content:space-between; align-items:center; }
+.sidebar-user span { color:var(--text); }
+.sidebar-user button { background:none; border:none; color:var(--muted); cursor:pointer; font-size:11px; letter-spacing:1px; text-transform:uppercase; }
+.sidebar-user button:hover { color:var(--red); }
+
+.phase-nav { flex:1; overflow-y:auto; padding:16px 0; }
+.phase-item { padding:10px 20px; cursor:pointer; display:flex; align-items:center; gap:12px; transition:all 0.15s; border-left:2px solid transparent; }
+.phase-item:hover { background:var(--surface2); }
+.phase-item.active { background:var(--surface2); border-left-color:var(--gold); }
+.phase-item.done { opacity:0.7; }
+.phase-num { width:22px; height:22px; border-radius:50%; background:var(--faint); border:1px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--muted); flex-shrink:0; transition:all 0.2s; }
+.phase-item.active .phase-num { background:var(--gold); border-color:var(--gold); color:#0a0a0a; }
+.phase-item.done .phase-num { background:var(--green); border-color:var(--green); color:#0a0a0a; }
+.phase-info .phase-title { font-size:13px; color:var(--text); }
+.phase-info .phase-sub { font-size:10px; color:var(--muted); margin-top:1px; }
+
+.sidebar-footer { padding:16px 20px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
+.sidebar-btn { background:none; border:1px solid var(--border2); color:var(--muted); padding:8px 12px; font-size:11px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; border-radius:2px; text-align:left; transition:all 0.15s; }
+.sidebar-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+/* Main content */
+.main-content { flex:1; height:100vh; overflow-y:auto; display:flex; flex-direction:column; }
+.phase-header { padding:32px 40px 24px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.phase-header-eyebrow { font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+.phase-header h1 { font-family:'Playfair Display',serif; font-size:28px; font-weight:400; }
+.phase-header h1 em { font-style:italic; color:var(--gold); }
+.phase-header-desc { font-size:14px; color:var(--muted); margin-top:8px; line-height:1.7; max-width:700px; }
+.phase-body { padding:32px 40px; flex:1; }
+
+/* Tip box */
+.tip-box { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--gold); border-radius:0 4px 4px 0; padding:16px 20px; margin-bottom:28px; font-size:13px; color:var(--muted); line-height:1.7; }
+.tip-box strong { color:var(--gold); }
+
+/* Section label */
+.sec-label { font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+
+/* Buttons */
+.btn { padding:10px 22px; font-size:12px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; border-radius:2px; transition:all 0.15s; }
+.btn-primary { background:var(--gold); border:none; color:#0a0a0a; }
+.btn-primary:hover { opacity:0.9; }
+.btn-outline { background:none; border:1px solid var(--border2); color:var(--muted); }
+.btn-outline:hover { border-color:var(--gold); color:var(--gold); }
+.btn-sm { padding:6px 14px; font-size:11px; }
+
+/* ========== PHASE 1 ========== */
+.p1-import { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px; }
+.import-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:24px; cursor:pointer; transition:all 0.2s; text-align:center; }
+.import-card:hover { border-color:var(--gold); }
+.import-card .ic-icon { font-size:28px; margin-bottom:10px; }
+.import-card .ic-title { font-size:14px; color:var(--text); margin-bottom:4px; }
+.import-card .ic-sub { font-size:12px; color:var(--muted); }
+#file-input { display:none; }
+
+.p1-data-list { display:flex; flex-direction:column; gap:8px; margin-bottom:28px; }
+.p1-datum { background:var(--surface); border:1px solid var(--border); border-radius:3px; padding:14px 16px; display:flex; gap:12px; align-items:flex-start; }
+.p1-datum-num { font-size:11px; color:var(--gold); letter-spacing:1px; min-width:30px; padding-top:2px; }
+.p1-datum-text { font-size:14px; color:#bbb; line-height:1.7; font-style:italic; flex:1; }
+.p1-datum-del { background:none; border:none; color:var(--faint); cursor:pointer; font-size:16px; padding:0 4px; }
+.p1-datum-del:hover { color:var(--red); }
+
+.p1-paste-area { width:100%; background:var(--surface); border:1px solid var(--border2); border-radius:3px; padding:16px; color:var(--text); font-size:14px; line-height:1.7; outline:none; min-height:120px; resize:vertical; margin-bottom:12px; }
+.p1-paste-area::placeholder { color:var(--muted); }
+
+.impressions-list { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+.impression-item { display:flex; gap:10px; align-items:center; }
+.impression-input { flex:1; background:var(--surface); border:1px solid var(--border2); border-radius:2px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; }
+.impression-input:focus { border-color:var(--gold); }
+.imp-del { background:none; border:none; color:var(--faint); cursor:pointer; font-size:16px; }
+.imp-del:hover { color:var(--red); }
+
+/* ========== PHASE 2 ========== */
+.p2-layout { display:grid; grid-template-columns:1fr 280px; gap:20px; height:calc(100vh - 200px); }
+.p2-left { overflow-y:auto; }
+.p2-right { overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:20px; }
+
+.p2-quote-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; margin-bottom:12px; overflow:hidden; }
+.p2-quote-header { padding:10px 16px; background:var(--surface2); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.p2-quote-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); }
+.p2-quote-body { padding:16px; font-size:14px; font-style:italic; line-height:1.9; color:#ccc; user-select:text; cursor:text; border-left:2px solid var(--gold3); }
+.p2-quote-body::selection, .p2-quote-body *::selection { background:var(--gold2); }
+.p2-codes-area { padding:10px 16px; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; gap:6px; min-height:36px; }
+.p2-code-tag { background:var(--surface3); border:1px solid var(--gold2); color:var(--gold); padding:3px 10px; border-radius:2px; font-size:11px; display:inline-flex; align-items:center; gap:5px; }
+.p2-code-tag .del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:11px; padding:0; }
+.p2-code-tag .del:hover { color:var(--red); }
+
+.p2-suggestions { margin-bottom:20px; }
+.p2-suggestion { background:none; border:1px solid var(--border); color:var(--muted); padding:7px 10px; font-size:11px; text-align:left; cursor:pointer; border-radius:2px; width:100%; margin-bottom:5px; transition:all 0.1s; }
+.p2-suggestion:hover { border-color:var(--gold); color:var(--gold); }
+
+.p2-custom { display:flex; gap:6px; margin-top:12px; }
+.p2-custom input { flex:1; background:var(--surface2); border:1px solid var(--border2); border-radius:2px; padding:8px 10px; color:var(--text); font-size:12px; outline:none; }
+.p2-custom input:focus { border-color:var(--gold); }
+.p2-custom button { background:var(--gold); border:none; color:#0a0a0a; padding:8px 14px; font-size:11px; cursor:pointer; border-radius:2px; }
+
+/* Code popup */
+#code-popup { display:none; position:fixed; background:var(--surface2); border:1px solid var(--border2); border-radius:4px; padding:16px; z-index:500; min-width:280px; box-shadow:0 8px 32px rgba(0,0,0,0.6); }
+#code-popup.visible { display:block; }
+#code-popup .popup-phrase { font-size:12px; color:var(--gold); font-style:italic; border-left:2px solid var(--gold); padding-left:8px; margin-bottom:12px; }
+#code-popup input { width:100%; background:var(--bg); border:1px solid var(--border2); border-radius:2px; padding:8px 10px; color:var(--text); font-size:12px; outline:none; margin-bottom:8px; }
+#code-popup input:focus { border-color:var(--gold); }
+#code-popup .popup-hints { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+#code-popup .popup-hint { background:none; border:1px solid var(--border2); color:var(--muted); padding:4px 8px; font-size:10px; cursor:pointer; border-radius:2px; }
+#code-popup .popup-hint:hover { border-color:var(--gold); color:var(--gold); }
+#code-popup .popup-actions { display:flex; gap:6px; }
+#code-popup .popup-actions button { flex:1; padding:8px; font-size:11px; cursor:pointer; border-radius:2px; letter-spacing:1px; text-transform:uppercase; }
+#code-popup .popup-ok { background:var(--gold); border:none; color:#0a0a0a; }
+#code-popup .popup-cancel { background:none; border:1px solid var(--border2); color:var(--muted); }
+
+/* ========== PHASE 3 ========== */
+.p3-layout { display:grid; grid-template-columns:220px 1fr; gap:20px; min-height:400px; }
+.p3-bank { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:16px; }
+.p3-bank-title { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+.p3-code-chip { background:var(--surface2); border:1px solid var(--border); border-radius:2px; padding:7px 10px; font-size:12px; color:#aaa; cursor:grab; margin-bottom:6px; user-select:none; transition:all 0.1s; }
+.p3-code-chip:hover { border-color:var(--gold2); color:var(--gold); }
+.p3-code-chip.dragging { opacity:0.4; }
+
+.p3-themes { flex:1; }
+.p3-themes-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.p3-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+.p3-theme-box { background:var(--surface); border:1px solid var(--border); border-radius:4px; min-height:160px; overflow:hidden; transition:border-color 0.15s; }
+.p3-theme-box.drag-over { border-color:var(--gold); }
+.p3-theme-top { height:3px; }
+.p3-theme-inner { padding:14px; }
+.p3-theme-name-input { width:100%; background:none; border:none; border-bottom:1px solid var(--border); color:var(--gold); font-family:'Playfair Display',serif; font-size:14px; font-style:italic; outline:none; padding:2px 0 6px; margin-bottom:12px; }
+.p3-theme-name-input::placeholder { color:var(--muted); }
+.p3-theme-codes { display:flex; flex-direction:column; gap:5px; min-height:60px; }
+.p3-theme-chip { background:var(--surface2); border:1px solid var(--border); border-radius:2px; padding:6px 10px; font-size:11px; color:#888; cursor:grab; display:flex; justify-content:space-between; align-items:center; user-select:none; }
+.p3-theme-chip .return-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px; }
+.p3-theme-chip .return-btn:hover { color:var(--red); }
+.p3-drop-hint { font-size:11px; color:var(--faint); font-style:italic; text-align:center; padding:16px 0; border:1px dashed var(--faint); border-radius:2px; }
+.p3-theme-footer { padding:8px 14px; border-top:1px solid var(--border); background:var(--surface2); display:flex; justify-content:space-between; font-size:10px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+.p3-del-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px; }
+.p3-del-btn:hover { color:var(--red); }
+
+/* ========== PHASE 4 ========== */
+.p4-theme-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-bottom:16px; }
+.p4-theme-header { padding:14px 20px; background:var(--surface2); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.p4-theme-name { font-family:'Playfair Display',serif; font-size:16px; font-style:italic; }
+.p4-theme-body { padding:20px; }
+.p4-codes-grid { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+.p4-code { background:var(--surface3); border:1px solid var(--border2); color:#888; padding:5px 12px; border-radius:2px; font-size:12px; }
+.p4-questions { display:flex; flex-direction:column; gap:8px; }
+.p4-question { font-size:13px; color:var(--muted); padding:10px 14px; background:var(--surface2); border-radius:3px; border-left:2px solid var(--gold3); }
+.p4-notes { width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:2px; padding:10px 12px; color:var(--text); font-size:13px; outline:none; line-height:1.7; resize:vertical; min-height:80px; margin-top:12px; }
+.p4-notes:focus { border-color:var(--gold); }
+.p4-decision { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+.p4-dec-btn { background:none; border:1px solid var(--border2); color:var(--muted); padding:6px 14px; font-size:11px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; border-radius:2px; transition:all 0.15s; }
+.p4-dec-btn:hover, .p4-dec-btn.selected { border-color:var(--gold); color:var(--gold); background:var(--gold3); }
+
+/* ========== PHASE 5 ========== */
+.p5-theme-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-bottom:16px; }
+.p5-theme-top { height:3px; }
+.p5-theme-body { padding:24px; }
+.p5-name-input { width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:2px; padding:10px 14px; color:var(--gold); font-family:'Playfair Display',serif; font-size:18px; font-style:italic; outline:none; margin-bottom:12px; }
+.p5-name-input:focus { border-color:var(--gold); }
+.p5-def-input { width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:2px; padding:10px 14px; color:var(--text); font-size:14px; outline:none; line-height:1.7; resize:vertical; min-height:80px; }
+.p5-def-input:focus { border-color:var(--gold); }
+.p5-codes { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+.p5-code { background:var(--surface3); border:1px solid var(--border); color:#777; padding:4px 10px; border-radius:2px; font-size:11px; }
+.p5-hint { font-size:12px; color:var(--muted); margin-bottom:8px; font-style:italic; }
+
+/* ========== PHASE 6 ========== */
+.p6-theme-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-bottom:20px; }
+.p6-theme-header { padding:16px 24px; background:var(--surface2); border-bottom:1px solid var(--border); }
+.p6-theme-name { font-family:'Playfair Display',serif; font-size:18px; font-style:italic; margin-bottom:4px; }
+.p6-theme-def { font-size:13px; color:var(--muted); font-style:italic; }
+.p6-theme-body { padding:24px; }
+.p6-writeup { width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:2px; padding:14px; color:var(--text); font-size:14px; outline:none; line-height:1.8; resize:vertical; min-height:180px; }
+.p6-writeup:focus { border-color:var(--gold); }
+.p6-quotes { margin-top:12px; }
+.p6-quote-chip { background:var(--surface3); border:1px solid var(--border); border-radius:3px; padding:10px 14px; font-size:13px; font-style:italic; color:#999; line-height:1.7; margin-bottom:8px; cursor:pointer; transition:border-color 0.15s; }
+.p6-quote-chip:hover { border-color:var(--gold2); }
+.p6-quote-chip.selected { border-color:var(--gold); background:var(--gold3); }
+.p6-quote-label { font-size:10px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; margin-bottom:4px; }
+
+/* ========== EXPORT MODAL ========== */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:600; align-items:center; justify-content:center; }
+.modal-overlay.visible { display:flex; }
+.modal { background:var(--surface); border:1px solid var(--border2); border-radius:6px; padding:36px; max-width:560px; width:90%; }
+.modal h2 { font-family:'Playfair Display',serif; font-size:22px; font-weight:400; color:var(--gold); margin-bottom:6px; }
+.modal p { font-size:14px; color:var(--muted); margin-bottom:24px; line-height:1.7; }
+.modal-btns { display:flex; gap:10px; flex-wrap:wrap; }
+.modal-close { background:none; border:1px solid var(--border2); color:var(--muted); padding:10px 20px; font-size:11px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; border-radius:2px; margin-top:16px; }
+
+/* Misc */
+.empty-state { text-align:center; padding:48px 20px; color:var(--muted); font-size:14px; font-style:italic; }
+.badge { display:inline-block; background:var(--gold3); border:1px solid var(--gold2); color:var(--gold); padding:2px 8px; border-radius:2px; font-size:10px; letter-spacing:1px; text-transform:uppercase; }
+.divider { border:none; border-top:1px solid var(--border); margin:24px 0; }
+.flex-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.mt16 { margin-top:16px; }
+.mt24 { margin-top:24px; }
+.mt32 { margin-top:32px; }
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="login-screen" class="screen active">
+  <div class="login-box">
+    <div class="login-logo">Thematica</div>
+    <div class="login-tagline">Reflexive Thematic Analysis · Braun & Clarke (2006)</div>
+    <label class="login-label">Your name</label>
+    <input class="login-input" id="login-name" placeholder="e.g. Swati Researcher" />
+    <label class="login-label">Project title</label>
+    <input class="login-input" id="login-project" placeholder="e.g. Student Experiences of Assessment" />
+    <label class="login-label">Institution (optional)</label>
+    <input class="login-input" id="login-institution" placeholder="e.g. University of Exeter" />
+    <button class="login-btn" onclick="doLogin()">Begin Analysis →</button>
+    <div class="login-note">No account needed. Your data stays entirely in your browser.<br><a onclick="loadDemo()">Load a demo dataset</a> to explore the tool first.</div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="app-screen" class="screen">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="name">Thematica</div>
+      <div class="sub">Thematic Analysis</div>
+    </div>
+    <div class="sidebar-user">
+      <span id="sidebar-username">Researcher</span>
+      <button onclick="logout()">Exit</button>
+    </div>
+    <nav class="phase-nav">
+      <div class="phase-item active" onclick="goPhase(1)" id="nav-1">
+        <div class="phase-num">1</div>
+        <div class="phase-info"><div class="phase-title">Familiarisation</div><div class="phase-sub">Import & impressions</div></div>
+      </div>
+      <div class="phase-item" onclick="goPhase(2)" id="nav-2">
+        <div class="phase-num">2</div>
+        <div class="phase-info"><div class="phase-title">Coding</div><div class="phase-sub">Highlight & label</div></div>
+      </div>
+      <div class="phase-item" onclick="goPhase(3)" id="nav-3">
+        <div class="phase-num">3</div>
+        <div class="phase-info"><div class="phase-title">Theme Sorting</div><div class="phase-sub">Group your codes</div></div>
+      </div>
+      <div class="phase-item" onclick="goPhase(4)" id="nav-4">
+        <div class="phase-num">4</div>
+        <div class="phase-info"><div class="phase-title">Review Themes</div><div class="phase-sub">Test coherence</div></div>
+      </div>
+      <div class="phase-item" onclick="goPhase(5)" id="nav-5">
+        <div class="phase-num">5</div>
+        <div class="phase-info"><div class="phase-title">Define Themes</div><div class="phase-sub">Name & describe</div></div>
+      </div>
+      <div class="phase-item" onclick="goPhase(6)" id="nav-6">
+        <div class="phase-num">6</div>
+        <div class="phase-info"><div class="phase-title">Write-up</div><div class="phase-sub">Narrative analysis</div></div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="sidebar-btn" onclick="showExport()">⬇ Export</button>
+      <button class="sidebar-btn" onclick="saveToFile()">💾 Save Progress</button>
+      <button class="sidebar-btn" onclick="document.getElementById('load-input').click()">📂 Load Progress</button>
+      <input type="file" id="load-input" accept=".json" style="display:none" onchange="loadFromFile(event)">
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-content" id="main-content"></div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal">
+    <h2>Export Your Analysis</h2>
+    <p>Download a summary of your work at each phase as a formatted HTML document, or export all phases together.</p>
+    <div class="modal-btns">
+      <button class="btn btn-outline btn-sm" onclick="exportPhase(1)">Phase 1 Summary</button>
+      <button class="btn btn-outline btn-sm" onclick="exportPhase(2)">Phase 2 Summary</button>
+      <button class="btn btn-outline btn-sm" onclick="exportPhase(3)">Phase 3 Summary</button>
+      <button class="btn btn-outline btn-sm" onclick="exportPhase(4)">Phase 4 Summary</button>
+      <button class="btn btn-outline btn-sm" onclick="exportPhase(5)">Phase 5 Summary</button>
+      <button class="btn btn-outline btn-sm" onclick="exportPhase(6)">Phase 6 Summary</button>
+      <button class="btn btn-primary btn-sm" onclick="exportAll()">Export All Phases</button>
+    </div>
+    <button class="modal-close" onclick="document.getElementById('export-modal').classList.remove('visible')">Close</button>
+  </div>
+</div>
+
+<!-- Code popup -->
+<div id="code-popup">
+  <div class="popup-phrase" id="popup-phrase-text"></div>
+  <input type="text" id="popup-code-input" placeholder="Type your code..." onkeydown="if(event.key==='Enter')confirmPopupCode()" />
+  <div class="popup-hints" id="popup-hints"></div>
+  <div class="popup-actions">
+    <button class="popup-ok" onclick="confirmPopupCode()">Add Code</button>
+    <button class="popup-cancel" onclick="closePopup()">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+const state = {
+  user: { name:'', project:'', institution:'' },
+  data: [],         // [{id, label, text}]
+  impressions: [],  // strings
+  codes: {},        // {dataId: [{phrase, code, colorIdx}]}
+  themes: [],       // [{id, name, codes:[]}]
+  phase4Notes: {},  // {themeId: {notes, decision}}
+  phase5: {},       // {themeId: {name, definition}}
+  phase6: {},       // {themeId: {writeup, quotes:[]}}
+  currentPhase: 1,
+  themeCounter: 1,
+  colorCounter: {}
+};
+
+const THEME_COLORS = ['#c9a96e','#6eb5c9','#a87ec9','#6ec990','#c96e7a','#c9be6e'];
+const SUGGESTIONS = [
+  'Unclear assessment briefs','Lack of actionable feedback','Feedback lacks individualisation',
+  'Harsh / unfair grading','Student self-blame','Inconsistency across modules/markers',
+  'Positive feedback experience','Lack of exemplars / models','Emotional impact of feedback',
+  'Isolation as a distance learner','Cultural adjustment','Disconnect between perceived and actual progress',
+  'Student desire for more agency','Feedback as a shock','No mechanism to query feedback',
+  'Contradictory feedback','Assessment overload','Surface learning over deep engagement'
+];
+
+let pendingPhrase = null;
+let pendingDataId = null;
+let dragItem = null;
+let dragSource = null;
+
+// ===== LOGIN =====
+function doLogin() {
+  const name = document.getElementById('login-name').value.trim();
+  const project = document.getElementById('login-project').value.trim();
+  if (!name || !project) { alert('Please enter your name and project title.'); return; }
+  state.user = { name, project, institution: document.getElementById('login-institution').value.trim() };
+  document.getElementById('sidebar-username').textContent = name;
+  document.getElementById('login-screen').classList.remove('active');
+  document.getElementById('app-screen').classList.add('active');
+  renderPhase(1);
+}
+
+function loadDemo() {
+  document.getElementById('login-name').value = 'Demo Researcher';
+  document.getElementById('login-project').value = 'Student Assessment Experiences';
+  state.data = [
+    {id:1, label:'P1', text:"Some assessment briefs are clearer than others. Unfortunately I have received grades much lower as I did not understand what was being asked in the brief. I take responsibility for this, but the assignment briefs could be clearer nonetheless."},
+    {id:2, label:'P2', text:"The summative feedback was not particularly helpful and lacked individualisation. In some instances, the feedback was objectively incorrect, yet there appeared to be no clear mechanism to query or request a correction."},
+    {id:3, label:'P3', text:"Feedback should always contain information about what could be done better next time, not just what was wrong with no sense of how you can improve."},
+    {id:4, label:'P4', text:"I think the grading is rather harsh. I'm always just under 70%."},
+    {id:5, label:'P5', text:"So I find myself in a false sense of security from the actual learning, and then get savaged in the feedback and feel I don't understand what I'm doing wrong, and it's proving very hard to speak to someone in person about it as a distance learner."}
+  ];
+  doLogin();
+}
+
+function logout() {
+  if (confirm('Exit and return to login? Your unsaved progress will be lost.')) {
+    document.getElementById('app-screen').classList.remove('active');
+    document.getElementById('login-screen').classList.add('active');
+  }
+}
+
+// ===== NAVIGATION =====
+function goPhase(n) {
+  state.currentPhase = n;
+  document.querySelectorAll('.phase-item').forEach((el,i) => {
+    el.classList.remove('active');
+    if (i+1 === n) el.classList.add('active');
+  });
+  renderPhase(n);
+}
+
+function renderPhase(n) {
+  const mc = document.getElementById('main-content');
+  mc.innerHTML = '';
+  if (n===1) renderPhase1(mc);
+  else if (n===2) renderPhase2(mc);
+  else if (n===3) renderPhase3(mc);
+  else if (n===4) renderPhase4(mc);
+  else if (n===5) renderPhase5(mc);
+  else if (n===6) renderPhase6(mc);
+}
+
+// ===== PHASE 1 =====
+function renderPhase1(mc) {
+  mc.innerHTML = `
+    <div class="phase-header">
+      <div class="phase-header-eyebrow">Phase 1 of 6</div>
+      <h1>Familiarisation <em>with the Data</em></h1>
+      <div class="phase-header-desc">Import your dataset and immerse yourself in it. Read through all responses before making any analytical moves. Record your initial impressions — gut reactions, patterns you notice, questions that arise.</div>
+    </div>
+    <div class="phase-body">
+      <div class="tip-box"><strong>Braun & Clarke say:</strong> Familiarisation is about becoming intimately acquainted with your data. Read and re-read. Note what strikes you — emotionally as well as analytically. Your reactions are data too.</div>
+
+      <div class="sec-label">Import your data</div>
+      <div class="p1-import">
+        <div class="import-card" onclick="document.getElementById('file-input').click()">
+          <div class="ic-icon">📄</div>
+          <div class="ic-title">Upload a file</div>
+          <div class="ic-sub">CSV or TXT — one response per line</div>
+        </div>
+        <div class="import-card" onclick="showPasteArea()">
+          <div class="ic-icon">✏️</div>
+          <div class="ic-title">Paste text</div>
+          <div class="ic-sub">Add responses one at a time</div>
+        </div>
+      </div>
+      <input type="file" id="file-input" accept=".csv,.txt" onchange="handleFileImport(event)" />
+
+      <div id="paste-area-container" style="display:none;margin-bottom:24px;">
+        <div class="sec-label">Paste a response</div>
+        <input type="text" class="login-input" id="paste-label" placeholder="Participant label (e.g. P1)" style="width:120px;margin-bottom:8px;display:inline-block;margin-right:8px;" />
+        <textarea class="p1-paste-area" id="paste-text" placeholder="Paste the response text here..."></textarea>
+        <div class="flex-row">
+          <button class="btn btn-primary btn-sm" onclick="addPastedResponse()">Add Response</button>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('paste-area-container').style.display='none'">Cancel</button>
+        </div>
+      </div>
+
+      <div id="p1-data-container"></div>
+
+      <hr class="divider">
+      <div class="sec-label">Your initial impressions</div>
+      <div class="tip-box" style="margin-bottom:16px;"><strong>Guidance:</strong> After reading through your data, note your first reactions. What themes or patterns do you sense? What surprises you? What emotions does the data evoke? There are no wrong answers here.</div>
+      <div class="impressions-list" id="impressions-list"></div>
+      <button class="btn btn-outline btn-sm" onclick="addImpression()">+ Add impression</button>
+
+      <div class="mt32">
+        <button class="btn btn-primary" onclick="completePhase(1)">Complete Phase 1 → Move to Coding</button>
+      </div>
+    </div>`;
+
+  document.getElementById('file-input').addEventListener('change', handleFileImport);
+  renderDataList();
+  renderImpressions();
+}
+
+function showPasteArea() { document.getElementById('paste-area-container').style.display='block'; }
+
+function handleFileImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const lines = ev.target.result.split('\n').map(l=>l.trim()).filter(l=>l);
+    lines.forEach((line, i) => {
+      const parts = line.split(',');
+      let label, text;
+      if (parts.length > 1 && parts[0].length < 10) { label = parts[0]; text = parts.slice(1).join(','); }
+      else { label = 'P'+(state.data.length+1); text = line; }
+      state.data.push({ id: Date.now()+i, label: label.trim(), text: text.trim() });
+    });
+    renderDataList();
+  };
+  reader.readAsText(file);
+}
+
+function addPastedResponse() {
+  const label = document.getElementById('paste-label').value.trim() || 'P'+(state.data.length+1);
+  const text = document.getElementById('paste-text').value.trim();
+  if (!text) return;
+  state.data.push({ id: Date.now(), label, text });
+  document.getElementById('paste-label').value = '';
+  document.getElementById('paste-text').value = '';
+  renderDataList();
+}
+
+function renderDataList() {
+  const c = document.getElementById('p1-data-container');
+  if (!c) return;
+  if (state.data.length === 0) { c.innerHTML = '<div class="empty-state">No data yet — import or paste responses above.</div>'; return; }
+  c.innerHTML = `<div class="sec-label">${state.data.length} response${state.data.length!==1?'s':''} loaded</div>` +
+    `<div class="p1-data-list">` +
+    state.data.map((d,i) => `
+      <div class="p1-datum">
+        <div class="p1-datum-num">${d.label}</div>
+        <div class="p1-datum-text">"${escHtml(d.text)}"</div>
+        <button class="p1-datum-del" onclick="removeData(${i})">×</button>
+      </div>`).join('') +
+    `</div>`;
+}
+
+function removeData(i) { state.data.splice(i,1); renderDataList(); }
+
+function renderImpressions() {
+  const c = document.getElementById('impressions-list');
+  if (!c) return;
+  if (state.impressions.length === 0) { c.innerHTML = ''; return; }
+  c.innerHTML = state.impressions.map((imp,i) => `
+    <div class="impression-item">
+      <input class="impression-input" value="${escHtml(imp)}" oninput="state.impressions[${i}]=this.value" placeholder="Your impression..." />
+      <button class="imp-del" onclick="removeImpression(${i})">×</button>
+    </div>`).join('');
+}
+
+function addImpression() { state.impressions.push(''); renderImpressions(); setTimeout(()=>{ const inputs=document.querySelectorAll('.impression-input'); if(inputs.length) inputs[inputs.length-1].focus(); },50); }
+function removeImpression(i) { state.impressions.splice(i,1); renderImpressions(); }
+
+// ===== PHASE 2 =====
+function renderPhase2(mc) {
+  if (state.data.length === 0) { mc.innerHTML = '<div class="phase-header"><h1>No data yet</h1><div class="phase-header-desc">Please go to Phase 1 and import your data first.</div></div>'; return; }
+
+  mc.innerHTML = `
+    <div class="phase-header">
+      <div class="phase-header-eyebrow">Phase 2 of 6</div>
+      <h1>Generating <em>Initial Codes</em></h1>
+      <div class="phase-header-desc">Select any phrase in a response with your mouse. A popup will appear — type your code or choose a suggestion. Each phrase can have multiple codes.</div>
+    </div>
+    <div class="phase-body">
+      <div class="tip-box"><strong>Guidance:</strong> Stay close to participants' own language at first. Notice emotional texture, not just content. One extract can receive multiple codes. Don't discard data that seems minor or contradictory.</div>
+      <div class="p2-layout">
+        <div class="p2-left" id="p2-quotes"></div>
+        <div class="p2-right">
+          <div class="sec-label">Suggested Codes</div>
+          <div class="tip-box" style="margin-bottom:14px;font-size:12px;">Select a phrase first, then click a suggestion — or type your own in the popup.</div>
+          <div class="p2-suggestions" id="p2-suggestions"></div>
+          <hr class="divider" style="margin:16px 0;">
+          <div class="sec-label">Quick Add</div>
+          <div class="p2-custom">
+            <input type="text" id="p2-quick-code" placeholder="Select text first..." />
+            <button onclick="quickAddCode()">Add</button>
+          </div>
+          <div class="mt32">
+            <button class="btn btn-primary" style="width:100%" onclick="completePhase(2)">Complete Coding →</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  renderP2Quotes();
+  renderP2Suggestions();
+  document.addEventListener('mouseup', handleP2Selection);
+}
+
+function renderP2Quotes() {
+  const c = document.getElementById('p2-quotes');
+  if (!c) return;
+  c.innerHTML = state.data.map(d => {
+    const qCodes = state.codes[d.id] || [];
+    return `
+      <div class="p2-quote-card">
+        <div class="p2-quote-header">
+          <div class="p2-quote-label">${escHtml(d.label)}</div>
+          <div style="font-size:11px;color:var(--muted)">${qCodes.length} code${qCodes.length!==1?'s':''}</div>
+        </div>
+        <div class="p2-quote-body" data-id="${d.id}">"${buildHighlightedText(d.text, qCodes, d.id)}"</div>
+        <div class="p2-codes-area">${qCodes.map((c,ci)=>`<span class="p2-code-tag" style="border-color:${THEME_COLORS[c.colorIdx%6]}44;color:${THEME_COLORS[c.colorIdx%6]}">${escHtml(c.code)}<button class="del" onclick="removeCode(${d.id},${ci})">×</button></span>`).join('')}</div>
+      </div>`;
+  }).join('');
+}
+
+function buildHighlightedText(text, qCodes, id) {
+  if (!qCodes.length) return escHtml(text);
+  let parts = [];
+  qCodes.forEach((item,idx) => {
+    const pos = text.indexOf(item.phrase);
+    if (pos !== -1) parts.push({start:pos, end:pos+item.phrase.length, code:item.code, colorIdx:item.colorIdx, idx});
+  });
+  parts.sort((a,b)=>a.start-b.start);
+  let result='', cursor=0;
+  parts.forEach(p => {
+    if (p.start >= cursor) {
+      result += escHtml(text.slice(cursor, p.start));
+      const col = THEME_COLORS[p.colorIdx%6];
+      result += `<span style="background:${col}22;border-bottom:2px solid ${col};padding:1px 0;cursor:pointer;" title="${escHtml(p.code)}">${escHtml(text.slice(p.start,p.end))}</span>`;
+      cursor = p.end;
+    }
+  });
+  result += escHtml(text.slice(cursor));
+  return result;
+}
+
+function handleP2Selection(e) {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const phrase = sel.toString().trim();
+  if (phrase.length < 2) return;
+  const box = e.target.closest('[data-id]');
+  if (!box) return;
+  pendingPhrase = phrase;
+  pendingDataId = parseInt(box.dataset.id);
+  showCodePopup(phrase, e.clientX, e.clientY);
+}
+
+function renderP2Suggestions() {
+  const c = document.getElementById('p2-suggestions');
+  if (!c) return;
+  c.innerHTML = SUGGESTIONS.map(s => `<button class="p2-suggestion" onclick="applySuggestion('${escHtml(s)}')">${escHtml(s)}</button>`).join('');
+}
+
+function applySuggestion(code) {
+  if (!pendingPhrase || !pendingDataId) return;
+  addCodeToData(pendingDataId, pendingPhrase, code);
+  closePopup();
+}
+
+function quickAddCode() {
+  const input = document.getElementById('p2-quick-code');
+  if (!pendingPhrase || !pendingDataId || !input.value.trim()) return;
+  addCodeToData(pendingDataId, pendingPhrase, input.value.trim());
+  input.value = '';
+  closePopup();
+}
+
+function addCodeToData(dataId, phrase, code) {
+  if (!state.codes[dataId]) state.codes[dataId] = [];
+  if (!state.colorCounter[dataId]) state.colorCounter[dataId] = 0;
+  const colorIdx = state.colorCounter[dataId]++;
+  state.codes[dataId].push({phrase, code, colorIdx});
+  renderP2Quotes();
+}
+
+function removeCode(dataId, idx) {
+  if (state.codes[dataId]) state.codes[dataId].splice(idx,1);
+  renderP2Quotes();
+}
+
+function showCodePopup(phrase, x, y) {
+  const popup = document.getElementById('code-popup');
+  document.getElementById('popup-phrase-text').textContent = `"${phrase}"`;
+  document.getElementById('popup-code-input').value = '';
+  document.getElementById('popup-hints').innerHTML = SUGGESTIONS.slice(0,6).map(s =>
+    `<button class="popup-hint" onclick="document.getElementById('popup-code-input').value='${escHtml(s)}'">${escHtml(s)}</button>`
+  ).join('');
+  const left = Math.min(x, window.innerWidth-300);
+  const top = Math.min(y+10, window.innerHeight-200);
+  popup.style.left = left+'px';
+  popup.style.top = top+'px';
+  popup.classList.add('visible');
+  setTimeout(()=>document.getElementById('popup-code-input').focus(), 50);
+}
+
+function confirmPopupCode() {
+  const code = document.getElementById('popup-code-input').value.trim();
+  if (!code || !pendingPhrase || !pendingDataId) return;
+  addCodeToData(pendingDataId, pendingPhrase, code);
+  closePopup();
+}
+
+function closePopup() {
+  document.getElementById('code-popup').classList.remove('visible');
+  pendingPhrase = null; pendingDataId = null;
+  window.getSelection()?.removeAllRanges();
+}
+
+// ===== PHASE 3 =====
+function renderPhase3(mc) {
+  const allCodes = getAllUniqueCodes();
+  const placedCodes = getPlacedCodes();
+  const bankCodes = allCodes.filter(c => !placedCodes.includes(c));
+
+  mc.innerHTML = `
+    <div class="phase-header">
+      <div class="phase-header-eyebrow">Phase 3 of 6</div>
+      <h1>Searching for <em>Themes</em></h1>
+      <div class="phase-header-desc">Drag your codes from the left panel into theme groups. Create as many theme boxes as you need. Rename each theme as patterns emerge. Nothing is final — you can move codes freely.</div>
+    </div>
+    <div class="phase-body">
+      <div class="tip-box"><strong>Guidance:</strong> A theme is not just a topic — it captures something meaningful and patterned across the data. Look for codes that tell the same underlying story. Some codes may not fit any theme yet; that's fine.</div>
+      <div class="p3-layout">
+        <div class="p3-bank">
+          <div class="p3-bank-title">Code Bank <span style="color:var(--muted)">(${bankCodes.length})</span></div>
+          <div id="p3-bank-list"></div>
+        </div>
+        <div class="p3-themes">
+          <div class="p3-themes-header">
+            <div class="sec-label" style="margin:0;border:none;padding:0">Your Themes</div>
+            <button class="btn btn-outline btn-sm" onclick="addTheme()">+ New Theme</button>
+          </div>
+          <div class="p3-grid" id="p3-grid"></div>
+          <div class="mt24">
+            <button class="btn btn-primary" onclick="completePhase(3)">Complete Theme Sorting →</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  if (state.themes.length === 0) { addTheme(); addTheme(); addTheme(); }
+  renderP3Bank(bankCodes);
+  renderP3Themes();
+}
+
+function getAllUniqueCodes() {
+  const all = new Set();
+  Object.values(state.codes).forEach(arr => arr.forEach(item => all.add(item.code)));
+  return [...all];
+}
+
+function getPlacedCodes() {
+  const placed = new Set();
+  state.themes.forEach(t => t.codes.forEach(c => placed.add(c)));
+  return [...placed];
+}
+
+function renderP3Bank(bankCodes) {
+  const c = document.getElementById('p3-bank-list');
+  if (!c) return;
+  if (bankCodes.length === 0) { c.innerHTML = '<div style="font-size:11px;color:var(--muted);font-style:italic;text-align:center;padding:16px 0">All codes sorted!</div>'; return; }
+  c.innerHTML = bankCodes.map((code,i) =>
+    `<div class="p3-code-chip" draggable="true" ondragstart="onDragStart(event,'bank','${escHtml(code)}')" ondragend="onDragEnd(event)">${escHtml(code)}</div>`
+  ).join('');
+}
+
+function renderP3Themes() {
+  const grid = document.getElementById('p3-grid');
+  if (!grid) return;
+  grid.innerHTML = state.themes.map((theme,ti) => `
+    <div class="p3-theme-box" id="tbox-${theme.id}"
+      ondragover="onDragOver(event,${theme.id})"
+      ondragleave="onDragLeave(event,${theme.id})"
+      ondrop="onDrop(event,${theme.id})">
+      <div class="p3-theme-top" style="background:${THEME_COLORS[ti%6]}"></div>
+      <div class="p3-theme-inner">
+        <input class="p3-theme-name-input" placeholder="Name this theme..." value="${escHtml(theme.name)}" oninput="state.themes[${ti}].name=this.value" style="color:${THEME_COLORS[ti%6]}" />
+        <div class="p3-theme-codes" id="tcodes-${theme.id}">
+          ${theme.codes.length === 0 ? '<div class="p3-drop-hint">Drop codes here</div>' :
+            theme.codes.map((code,ci) => `
+              <div class="p3-theme-chip" draggable="true" ondragstart="onDragStart(event,${theme.id},'${escHtml(code)}')" ondragend="onDragEnd(event)">
+                <span style="font-size:11px">${escHtml(code)}</span>
+                <button class="return-btn" onclick="returnToBank(${theme.id},'${escHtml(code)}')" title="Return to bank">↩</button>
+              </div>`).join('')}
+        </div>
+      </div>
+      <div class="p3-theme-footer">
+        <span>${theme.codes.length} code${theme.codes.length!==1?'s':''}</span>
+        <button class="p3-del-btn" onclick="deleteTheme(${theme.id})">× Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function addTheme() {
+  state.themes.push({ id: state.themeCounter++, name:'', codes:[] });
+  renderP3Themes();
+}
+
+function deleteTheme(id) {
+  const t = state.themes.find(t=>t.id===id);
+  if (t) { state.themes = state.themes.filter(t=>t.id!==id); }
+  const allCodes = getAllUniqueCodes();
+  const placedCodes = getPlacedCodes();
+  renderP3Bank(allCodes.filter(c=>!placedCodes.includes(c)));
+  renderP3Themes();
+}
+
+function returnToBank(themeId, code) {
+  const t = state.themes.find(t=>t.id===themeId);
+  if (t) t.codes = t.codes.filter(c=>c!==code);
+  const allCodes = getAllUniqueCodes();
+  const placedCodes = getPlacedCodes();
+  renderP3Bank(allCodes.filter(c=>!placedCodes.includes(c)));
+  renderP3Themes();
+}
+
+function onDragStart(e, source, code) { dragSource=source; dragItem=code; e.dataTransfer.effectAllowed='move'; }
+function onDragEnd(e) { dragItem=null; dragSource=null; }
+function onDragOver(e, themeId) { e.preventDefault(); document.getElementById(`tbox-${themeId}`)?.classList.add('drag-over'); }
+function onDragLeave(e, themeId) { document.getElementById(`tbox-${themeId}`)?.classList.remove('drag-over'); }
+function onDrop(e, themeId) {
+  e.preventDefault();
+  document.getElementById(`tbox-${themeId}`)?.classList.remove('drag-over');
+  if (!dragItem) return;
+  const target = state.themes.find(t=>t.id===themeId);
+  if (!target || target.codes.includes(dragItem)) return;
+  if (dragSource !== 'bank') {
+    const src = state.themes.find(t=>t.id===dragSource);
+    if (src) src.codes = src.codes.filter(c=>c!==dragItem);
+  }
+  target.codes.push(dragItem);
+  const allCodes = getAllUniqueCodes();
+  const placedCodes = getPlacedCodes();
+  renderP3Bank(allCodes.filter(c=>!placedCodes.includes(c)));
+  renderP3Themes();
+}
+
+// ===== PHASE 4 =====
+function renderPhase4(mc) {
+  if (state.themes.length === 0) { mc.innerHTML = '<div class="phase-header"><h1>No themes yet</h1><div class="phase-header-desc">Please complete Phase 3 first.</div></div>'; return; }
+  mc.innerHTML = `
+    <div class="phase-header">
+      <div class="phase-header-eyebrow">Phase 4 of 6</div>
+      <h1>Reviewing <em>Your Themes</em></h1>
+      <div class="phase-header-desc">Interrogate each theme. Does it hold together coherently? Are the codes a good fit? Review across themes — is there overlap, or anything missing from the dataset?</div>
+    </div>
+    <div class="phase-body">
+      <div class="tip-box"><strong>Braun & Clarke say:</strong> A theme should have a clear central concept. If you can't articulate what a theme is about in one sentence, it may need splitting, merging, or rethinking. Be prepared to refine.</div>
+      <div id="p4-themes"></div>
+      <div class="mt24"><button class="btn btn-primary" onclick="completePhase(4)">Complete Review → Define Themes</button></div>
+    </div>`;
+  renderP4Themes();
+}
+
+function renderP4Themes() {
+  const c = document.getElementById('p4-themes');
+  if (!c) return;
+  c.innerHTML = state.themes.map((theme,ti) => {
+    const notes = state.phase4Notes[theme.id] || { notes:'', decision:'keep' };
+    return `
+      <div class="p4-theme-card">
+        <div class="p4-theme-header">
+          <div class="p4-theme-name" style="color:${THEME_COLORS[ti%6]}">${escHtml(theme.name || 'Unnamed Theme')}</div>
+          <div style="font-size:11px;color:var(--muted)">${theme.codes.length} codes</div>
+        </div>
+        <div class="p4-theme-body">
+          <div class="p4-codes-grid">${theme.codes.map(c=>`<span class="p4-code">${escHtml(c)}</span>`).join('')}</div>
+          <div class="sec-label">Review questions</div>
+          <div class="p4-questions">
+            <div class="p4-question">Do these codes tell one coherent story, or are there tensions between them?</div>
+            <div class="p4-question">Is there data in the dataset that supports this theme strongly?</div>
+            <div class="p4-question">Does this theme overlap significantly with any other theme?</div>
+          </div>
+          <textarea class="p4-notes" placeholder="Your review notes for this theme..." oninput="updateP4Notes(${theme.id},'notes',this.value)">${escHtml(notes.notes)}</textarea>
+          <div class="p4-decision">
+            <div style="font-size:12px;color:var(--muted);align-self:center;margin-right:4px;">Decision:</div>
+            ${['keep','refine','split','merge','drop'].map(d=>`<button class="p4-dec-btn ${notes.decision===d?'selected':''}" onclick="updateP4Notes(${theme.id},'decision','${d}')">${d.charAt(0).toUpperCase()+d.slice(1)}</button>`).join('')}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function updateP4Notes(themeId, key, value) {
+  if (!state.phase4Notes[themeId]) state.phase4Notes[themeId] = {notes:'', decision:'keep'};
+  state.phase4Notes[themeId][key] = value;
+  if (key==='decision') renderP4Themes();
+}
+
+// ===== PHASE 5 =====
+function renderPhase5(mc) {
+  if (state.themes.length === 0) { mc.innerHTML = '<div class="phase-header"><h1>No themes yet</h1></div>'; return; }
+  mc.innerHTML = `
+    <div class="phase-header">
+      <div class="phase-header-eyebrow">Phase 5 of 6</div>
+      <h1>Defining <em>Your Themes</em></h1>
+      <div class="phase-header-desc">Give each theme its final name and write a clear definition — one or two sentences that capture what the theme is really about. A good theme name is evocative, not just descriptive.</div>
+    </div>
+    <div class="phase-body">
+      <div class="tip-box"><strong>Guidance:</strong> Your theme name should do more than label — it should convey the essence of the theme. Your definition should explain what the theme captures about the data, not just list what's in it.</div>
+      <div id="p5-themes"></div>
+      <div class="mt24"><button class="btn btn-primary" onclick="completePhase(5)">Complete Definitions → Write-up</button></div>
+    </div>`;
+  renderP5Themes();
+}
+
+function renderP5Themes() {
+  const c = document.getElementById('p5-themes');
+  if (!c) return;
+  c.innerHTML = state.themes.map((theme,ti) => {
+    const p5 = state.phase5[theme.id] || { name: theme.name, definition:'' };
+    return `
+      <div class="p5-theme-card">
+        <div class="p5-theme-top" style="background:${THEME_COLORS[ti%6]}"></div>
+        <div class="p5-theme-body">
+          <div class="sec-label">Theme ${ti+1} — Final Name</div>
+          <input class="p5-name-input" style="color:${THEME_COLORS[ti%6]}" value="${escHtml(p5.name)}" placeholder="Final theme name..." oninput="updateP5(${theme.id},'name',this.value)" />
+          <div class="sec-label">Definition</div>
+          <div class="p5-hint">What is this theme really about? What does it say about the data?</div>
+          <textarea class="p5-def-input" placeholder="Write your theme definition here..." oninput="updateP5(${theme.id},'definition',this.value)">${escHtml(p5.definition)}</textarea>
+          <div class="mt16">
+            <div class="sec-label">Codes in this theme</div>
+            <div class="p5-codes">${theme.codes.map(c=>`<span class="p5-code">${escHtml(c)}</span>`).join('')}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function updateP5(themeId, key, value) {
+  if (!state.phase5[themeId]) state.phase5[themeId] = { name:'', definition:'' };
+  state.phase5[themeId][key] = value;
+  if (key==='name') { const t = state.themes.find(t=>t.id===themeId); if(t) t.name = value; }
+}
+
+// ===== PHASE 6 =====
+function renderPhase6(mc) {
+  if (state.themes.length === 0) { mc.innerHTML = '<div class="phase-header"><h1>No themes yet</h1></div>'; return; }
+  mc.innerHTML = `
+    <div class="phase-header">
+      <div class="phase-header-eyebrow">Phase 6 of 6</div>
+      <h1>Writing <em>Up Your Analysis</em></h1>
+      <div class="phase-header-desc">Write a narrative analysis for each theme. Tell the story of what the theme means — don't just describe it. Select relevant quotes from your data to use as evidence, and weave them into your analysis.</div>
+    </div>
+    <div class="phase-body">
+      <div class="tip-box"><strong>Braun & Clarke say:</strong> The write-up should go beyond description. Analyse — interpret what the theme means in relation to your research question. Quotes are evidence for your argument, not the argument itself.</div>
+      <div id="p6-themes"></div>
+    </div>`;
+  renderP6Themes();
+}
+
+function renderP6Themes() {
+  const c = document.getElementById('p6-themes');
+  if (!c) return;
+  c.innerHTML = state.themes.map((theme,ti) => {
+    const p5 = state.phase5[theme.id] || {};
+    const p6 = state.phase6[theme.id] || { writeup:'', quotes:[] };
+    const themeName = p5.name || theme.name || `Theme ${ti+1}`;
+    const themeDef = p5.definition || '';
+    const relevantQuotes = state.data.filter(d => {
+      const codes = state.codes[d.id] || [];
+      return codes.some(c => theme.codes.includes(c.code));
+    });
+    return `
+      <div class="p6-theme-card">
+        <div class="p6-theme-header" style="border-left:3px solid ${THEME_COLORS[ti%6]}">
+          <div class="p6-theme-name" style="color:${THEME_COLORS[ti%6]}">${escHtml(themeName)}</div>
+          <div class="p6-theme-def">${escHtml(themeDef)}</div>
+        </div>
+        <div class="p6-theme-body">
+          <div class="sec-label">Your narrative analysis</div>
+          <div class="tip-box" style="margin-bottom:12px;font-size:12px;">Write your interpretation of this theme. What does it mean? What does it tell you about your research question? Reference the data — don't just summarise it.</div>
+          <textarea class="p6-writeup" placeholder="Write your analysis of this theme here..." oninput="updateP6(${theme.id},'writeup',this.value)">${escHtml(p6.writeup)}</textarea>
+          ${relevantQuotes.length > 0 ? `
+            <div class="p6-quotes mt16">
+              <div class="sec-label">Supporting quotes from your data (click to mark as used)</div>
+              ${relevantQuotes.map(d => `
+                <div class="p6-quote-chip ${p6.quotes.includes(d.id)?'selected':''}" onclick="toggleP6Quote(${theme.id},${d.id})">
+                  <div class="p6-quote-label">${escHtml(d.label)}</div>
+                  "${escHtml(d.text.substring(0,200))}${d.text.length>200?'...':''}"
+                </div>`).join('')}
+            </div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function updateP6(themeId, key, value) {
+  if (!state.phase6[themeId]) state.phase6[themeId] = { writeup:'', quotes:[] };
+  state.phase6[themeId][key] = value;
+}
+
+function toggleP6Quote(themeId, dataId) {
+  if (!state.phase6[themeId]) state.phase6[themeId] = { writeup:'', quotes:[] };
+  const q = state.phase6[themeId].quotes;
+  const idx = q.indexOf(dataId);
+  if (idx === -1) q.push(dataId); else q.splice(idx,1);
+  renderP6Themes();
+}
+
+// ===== PHASE COMPLETE =====
+function completePhase(n) {
+  document.querySelector(`#nav-${n} .phase-num`).style.background = 'var(--green)';
+  document.querySelector(`#nav-${n} .phase-num`).style.borderColor = 'var(--green)';
+  document.querySelector(`#nav-${n} .phase-num`).style.color = '#0a0a0a';
+  document.getElementById(`nav-${n}`).classList.add('done');
+  if (n < 6) goPhase(n+1);
+}
+
+// ===== EXPORT =====
+function showExport() { document.getElementById('export-modal').classList.add('visible'); }
+
+function exportPhase(n) {
+  let html = buildExportHTML(n);
+  downloadHTML(html, `Thematica_Phase${n}_${state.user.project.replace(/\s+/g,'_')}.html`);
+}
+
+function exportAll() {
+  let html = buildAllExportHTML();
+  downloadHTML(html, `Thematica_FullAnalysis_${state.user.project.replace(/\s+/g,'_')}.html`);
+}
+
+function buildExportHTML(n) {
+  const phaseNames = ['','Familiarisation','Generating Codes','Theme Sorting','Reviewing Themes','Defining Themes','Write-up'];
+  let body = '';
+  if (n===1) {
+    body = `<h2>Dataset (${state.data.length} responses)</h2>` +
+      state.data.map(d=>`<div class="item"><div class="label">${escHtml(d.label)}</div><div class="quote">"${escHtml(d.text)}"</div></div>`).join('') +
+      `<h2>Initial Impressions</h2>` +
+      (state.impressions.length ? state.impressions.map((imp,i)=>`<div class="item"><div class="label">${i+1}</div><div class="quote">${escHtml(imp)}</div></div>`).join('') : '<p style="color:#888">No impressions recorded.</p>');
+  } else if (n===2) {
+    body = state.data.map(d => {
+      const qCodes = state.codes[d.id] || [];
+      return `<div class="item"><div class="label">${escHtml(d.label)}</div><div class="quote">"${escHtml(d.text)}"</div><div class="codes">${qCodes.map(c=>`<span class="code-tag">${escHtml(c.code)}</span>`).join('')}</div></div>`;
+    }).join('');
+  } else if (n===3) {
+    body = state.themes.map(t=>`<div class="theme-block"><div class="theme-name">${escHtml(t.name||'Unnamed')}</div><div class="codes">${t.codes.map(c=>`<span class="code-tag">${escHtml(c)}</span>`).join('')}</div></div>`).join('');
+  } else if (n===4) {
+    body = state.themes.map(t => {
+      const notes = state.phase4Notes[t.id] || {};
+      return `<div class="theme-block"><div class="theme-name">${escHtml(t.name||'Unnamed')}</div><p><strong>Decision:</strong> ${notes.decision||'keep'}</p><p><strong>Notes:</strong> ${escHtml(notes.notes||'None')}</p></div>`;
+    }).join('');
+  } else if (n===5) {
+    body = state.themes.map(t => {
+      const p5 = state.phase5[t.id] || {};
+      return `<div class="theme-block"><div class="theme-name">${escHtml(p5.name||t.name||'Unnamed')}</div><p class="def">${escHtml(p5.definition||'No definition yet.')}</p><div class="codes">${t.codes.map(c=>`<span class="code-tag">${escHtml(c)}</span>`).join('')}</div></div>`;
+    }).join('');
+  } else if (n===6) {
+    body = state.themes.map(t => {
+      const p5 = state.phase5[t.id] || {};
+      const p6 = state.phase6[t.id] || {};
+      const usedQuotes = (p6.quotes||[]).map(qid => state.data.find(d=>d.id===qid)).filter(Boolean);
+      return `<div class="theme-block"><div class="theme-name">${escHtml(p5.name||t.name||'Unnamed')}</div><p class="def">${escHtml(p5.definition||'')}</p><div class="writeup">${escHtml(p6.writeup||'No write-up yet.')}</div>${usedQuotes.length?`<h3>Supporting quotes</h3>${usedQuotes.map(q=>`<div class="quote-block"><span class="qlabel">${escHtml(q.label)}</span> "${escHtml(q.text)}"</div>`).join('')}`:''}</div>`;
+    }).join('');
+  }
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Thematica — Phase ${n}: ${phaseNames[n]}</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;1,400&family=Crimson+Pro:wght@0,300;0,400&display=swap" rel="stylesheet">
+<style>
+body{background:#0a0a0a;color:#e2ddd6;font-family:'Crimson Pro',Georgia,serif;max-width:900px;margin:0 auto;padding:48px 32px;}
+h1{font-family:'Playfair Display',serif;font-size:36px;font-weight:400;color:#c9a96e;margin-bottom:8px;}
+h2{font-family:'Playfair Display',serif;font-size:20px;font-weight:400;color:#c9a96e;margin:32px 0 16px;border-bottom:1px solid #1e1e1e;padding-bottom:8px;}
+h3{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#6a6560;margin:16px 0 10px;}
+.meta{font-size:12px;color:#6a6560;margin-bottom:40px;line-height:1.8;}
+.item{background:#111;border:1px solid #1e1e1e;border-radius:4px;padding:16px;margin-bottom:10px;}
+.label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a96e;margin-bottom:6px;}
+.quote{font-size:14px;font-style:italic;color:#bbb;line-height:1.8;}
+.codes{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.code-tag{background:#1a1a1a;border:1px solid #c9a96e33;color:#c9a96e;padding:3px 10px;border-radius:2px;font-size:11px;}
+.theme-block{background:#111;border:1px solid #1e1e1e;border-radius:4px;padding:20px;margin-bottom:14px;}
+.theme-name{font-family:'Playfair Display',serif;font-size:20px;font-style:italic;color:#c9a96e;margin-bottom:10px;}
+.def{font-size:14px;color:#888;font-style:italic;margin-bottom:12px;line-height:1.7;}
+.writeup{font-size:14px;color:#ccc;line-height:1.8;white-space:pre-wrap;margin-bottom:12px;}
+.quote-block{background:#161616;border-left:2px solid #c9a96e44;padding:10px 14px;margin-bottom:8px;font-size:13px;font-style:italic;color:#999;line-height:1.7;}
+.qlabel{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#c9a96e;display:block;margin-bottom:4px;}
+</style></head><body>
+<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6a6560;margin-bottom:12px;">Thematica · Braun & Clarke (2006)</div>
+<h1>Phase ${n}: ${phaseNames[n]}</h1>
+<div class="meta">Researcher: ${escHtml(state.user.name)} · Project: ${escHtml(state.user.project)}${state.user.institution?' · '+escHtml(state.user.institution):''} · Exported: ${new Date().toLocaleDateString()}</div>
+${body}
+</body></html>`;
+}
+
+function buildAllExportHTML() {
+  let sections = '';
+  for (let i=1; i<=6; i++) sections += buildExportHTML(i).replace(/<!DOCTYPE html>.*?<body>/s,'<div class="phase-section">').replace('</body></html>','</div>');
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Thematica — Full Analysis</title><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;1,400&family=Crimson+Pro:wght@0,300;0,400&display=swap" rel="stylesheet"><style>body{background:#0a0a0a;color:#e2ddd6;font-family:'Crimson Pro',Georgia,serif;max-width:900px;margin:0 auto;padding:48px 32px;} .phase-section{margin-bottom:64px;border-bottom:1px solid #1e1e1e;padding-bottom:64px;} h1{font-family:'Playfair Display',serif;font-size:36px;font-weight:400;color:#c9a96e;margin-bottom:8px;} h2{font-family:'Playfair Display',serif;font-size:20px;font-weight:400;color:#c9a96e;margin:32px 0 16px;} .meta{font-size:12px;color:#6a6560;margin-bottom:32px;} .item{background:#111;border:1px solid #1e1e1e;border-radius:4px;padding:16px;margin-bottom:10px;} .label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a96e;margin-bottom:6px;} .quote{font-size:14px;font-style:italic;color:#bbb;line-height:1.8;} .codes{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;} .code-tag{background:#1a1a1a;border:1px solid #c9a96e33;color:#c9a96e;padding:3px 10px;border-radius:2px;font-size:11px;} .theme-block{background:#111;border:1px solid #1e1e1e;border-radius:4px;padding:20px;margin-bottom:14px;} .theme-name{font-family:'Playfair Display',serif;font-size:20px;font-style:italic;color:#c9a96e;margin-bottom:10px;} .def{font-size:14px;color:#888;font-style:italic;margin-bottom:12px;line-height:1.7;} .writeup{font-size:14px;color:#ccc;line-height:1.8;white-space:pre-wrap;} .quote-block{background:#161616;border-left:2px solid #c9a96e44;padding:10px 14px;margin-bottom:8px;font-size:13px;font-style:italic;color:#999;} .qlabel{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#c9a96e;display:block;margin-bottom:4px;}</style></head><body><h1 style="font-size:48px">Thematica</h1><p style="color:#6a6560;font-size:14px;margin-bottom:48px">Full Analysis · ${escHtml(state.user.project)} · ${escHtml(state.user.name)} · ${new Date().toLocaleDateString()}</p>${sections}</body></html>`;
+}
+
+function downloadHTML(html, filename) {
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+// ===== SAVE / LOAD =====
+function saveToFile() {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Thematica_${state.user.project.replace(/\s+/g,'_')}_save.json`;
+  a.click();
+}
+
+function loadFromFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const loaded = JSON.parse(ev.target.result);
+      Object.assign(state, loaded);
+      document.getElementById('sidebar-username').textContent = state.user.name;
+      renderPhase(state.currentPhase);
+    } catch(err) { alert('Could not load file — invalid format.'); }
+  };
+  reader.readAsText(file);
+}
+
+// ===== UTILS =====
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+document.addEventListener('mousedown', e => {
+  const popup = document.getElementById('code-popup');
+  if (popup.classList.contains('visible') && !popup.contains(e.target) && !e.target.closest('[data-id]')) closePopup();
+});
+</script>
+</body>
+</html>
